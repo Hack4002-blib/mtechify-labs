@@ -6,3 +6,9 @@ data/*.db-journal
 .vscode/
 .idea/
 *.log
+backend/data/
+backend/unknown_queries.json
+backend/__pycache__/
+backend/.env
+*.pyc
+*.db
