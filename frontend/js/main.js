@@ -1,6 +1,6 @@
 // ms-tech-solution/frontend/js/main.js
 // API BASE URL
-const API_BASE_URL = 'http://127.0.0.1:8001';
+const API_BASE_URL = 'https://mtechify-labs.onrender.com';
 
 // Visitor ID
 if (!localStorage.getItem('visitor_id')) {
