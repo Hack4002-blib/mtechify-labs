@@ -9,7 +9,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 os.makedirs(DATA_DIR, exist_ok=True)
 
-DATABASE_URL = f"sqlite:///{os.path.join(DATA_DIR, 'mtechify.db')}"
+DATABASE_URL = "postgresql://postgres:MTechify%402026%23DB@db.dwsnohkrbqglrwxkngfd.supabase.co:5432/postgres"
 
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
