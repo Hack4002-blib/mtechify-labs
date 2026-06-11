@@ -9,13 +9,12 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 os.makedirs(DATA_DIR, exist_ok=True)
 
-DATABASE_URL = "postgresql://postgres:MTechify%402026%23DB@db.dwsnohkrbqglrwxkngfd.supabase.co:5432/postgres"
-
+DATABASE_URL = "postgresql://postgres.dwsnohkrbqglrwxkngfd:MTechify%402026%23DB@aws-1-ap-northeast-2.pooler.supabase.com:5432/postgres"
 if DATABASE_URL.startswith("sqlite"):
     engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 else:
     engine = create_engine(DATABASE_URL)
-    
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
