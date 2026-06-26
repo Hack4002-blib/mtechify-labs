@@ -1,189 +1,532 @@
 <!-- backend/templates/admin.html -->
+<!-- backend/templates/admin.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MTechify  Admin Dashboard</title>
+    <title>MTechify Admin Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Poppins', sans-serif; background: #f5f7fb; }
         .login-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #1A3C6E, #0F2A4A); }
-        .login-box { background: white; border-radius: 16px; padding: 40px; width: 100%; max-width: 400px; }
-        .login-box h2 { color: #1A3C6E; margin-bottom: 24px; text-align: center; }
-        .login-box input { width: 100%; padding: 14px; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 8px; }
-        .login-box button { width: 100%; padding: 14px; background: #F59E0B; color: #1A3C6E; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        .login-box { background: white; border-radius: 16px; padding: 40px; width: 100%; max-width: 400px; text-align: center; }
+        .login-box h2 { color: #1A3C6E; margin-bottom: 8px; }
+        .login-box p { color: #666; font-size: 0.85rem; margin-bottom: 24px; }
+        .login-box input { width: 100%; padding: 14px; margin-bottom: 16px; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; font-size: 1rem; }
+        .login-box button { width: 100%; padding: 14px; background: #F59E0B; color: #1A3C6E; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 1rem; }
         .dashboard { display: none; }
-        .dashboard-header { background: #1A3C6E; color: white; padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; padding: 30px; }
-        .stat-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .stat-card h3 { font-size: 14px; color: #666; margin-bottom: 10px; }
-        .stat-card .number { font-size: 32px; font-weight: 700; color: #1A3C6E; }
-        .section { background: white; margin: 20px 30px; border-radius: 12px; padding: 20px; overflow-x: auto; }
-        .section h2 { color: #1A3C6E; margin-bottom: 20px; font-size: 20px; }
-        table { width: 100%; border-collapse: collapse; min-width: 500px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
-        th { background: #f8f9fa; font-weight: 600; }
-        .badge { padding: 4px 8px; border-radius: 20px; font-size: 12px; }
-        .badge-pending { background: #ffc107; color: #333; }
-        .badge-approved { background: #28a745; color: white; }
-        .btn-approve { background: #28a745; color: white; border: none; padding: 5px 12px; border-radius: 4px; cursor: pointer; }
-        .logout-btn { background: #dc3545; color: white; border: none; padding: 8px 20px; border-radius: 8px; cursor: pointer; }
-        .refresh-btn { background: #17a2b8; color: white; border: none; padding: 8px 20px; border-radius: 8px; cursor: pointer; margin-right: 10px; }
-        @media (max-width: 768px) { .stats-grid { padding: 15px; } .section { margin: 15px; padding: 15px; } th, td { font-size: 12px; padding: 8px; } }
+        .dashboard-header { background: #1A3C6E; color: white; padding: 16px 28px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+        .dashboard-header h1 { font-size: 1.2rem; }
+        .header-btns { display: flex; gap: 10px; }
+        .btn-refresh { background: #17a2b8; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; }
+        .btn-logout { background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; }
+        .tabs { display: flex; background: white; border-bottom: 2px solid #e5e7eb; padding: 0 28px; overflow-x: auto; }
+        .tab-btn { padding: 14px 20px; border: none; background: none; cursor: pointer; font-family: inherit; font-size: 0.9rem; font-weight: 500; color: #6B7280; border-bottom: 3px solid transparent; margin-bottom: -2px; white-space: nowrap; transition: all 0.2s; }
+        .tab-btn.active { color: #1A3C6E; border-bottom-color: #F59E0B; font-weight: 600; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; padding: 24px 28px; }
+        .stat-card { background: white; border-radius: 12px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid #F59E0B; }
+        .stat-card h3 { font-size: 0.78rem; color: #666; margin-bottom: 8px; }
+        .stat-card .number { font-size: 2rem; font-weight: 700; color: #1A3C6E; }
+        .section { background: white; margin: 20px 28px; border-radius: 12px; padding: 22px; overflow-x: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; }
+        .section h2 { color: #1A3C6E; font-size: 1.1rem; }
+        table { width: 100%; border-collapse: collapse; min-width: 480px; }
+        th, td { padding: 11px 12px; text-align: left; border-bottom: 1px solid #f0f0f0; font-size: 0.88rem; }
+        th { background: #f8f9fa; font-weight: 600; color: #374151; }
+        tr:hover td { background: #fafafa; }
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+        .badge-active { background: #d1fae5; color: #065f46; }
+        .badge-soon { background: #f3f4f6; color: #6B7280; }
+        .badge-pending { background: #fef3c7; color: #92400e; }
+        .badge-approved { background: #d1fae5; color: #065f46; }
+        .badge-permanent { background: #dbeafe; color: #1e40af; font-size: 0.7rem; }
+        .btn-sm { padding: 5px 12px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
+        .btn-toggle-active { background: #fef3c7; color: #92400e; }
+        .btn-toggle-soon { background: #d1fae5; color: #065f46; }
+        .btn-approve { background: #28a745; color: white; }
+        .btn-edit { background: #F59E0B; color: #1A3C6E; }
+        .btn-delete { background: #fee2e2; color: #dc2626; }
+        .btn-add { background: #1A3C6E; color: white; padding: 9px 18px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-size: 0.88rem; }
+        .btn-save { background: #F59E0B; color: #1A3C6E; padding: 10px 22px; border-radius: 8px; border: none; cursor: pointer; font-weight: 700; width: 100%; margin-top: 8px; }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center; padding: 20px; }
+        .modal-overlay.open { display: flex; }
+        .modal { background: white; border-radius: 16px; padding: 28px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+        .modal h3 { color: #1A3C6E; margin-bottom: 20px; font-size: 1.1rem; }
+        .modal label { display: block; font-size: 0.85rem; font-weight: 600; color: #374151; margin-bottom: 5px; margin-top: 14px; }
+        .modal input, .modal select, .modal textarea { width: 100%; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-family: inherit; font-size: 0.9rem; }
+        .modal textarea { resize: vertical; min-height: 80px; }
+        .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-cancel { background: #f3f4f6; color: #374151; padding: 10px 22px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; flex: 1; }
+        #adminToast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 8px; color: white; font-weight: 600; font-size: 0.9rem; z-index: 99999; display: none; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+        @media (max-width: 768px) { .stats-grid { padding: 16px; } .section { margin: 14px; padding: 16px; } th, td { font-size: 0.78rem; padding: 8px; } .tabs { padding: 0 14px; } }
     </style>
 </head>
 <body>
 
 <div id="loginPage" class="login-container">
     <div class="login-box">
-        <h2>🔐 Admin Login</h2>
-        <input type="password" id="adminPassword" placeholder="Enter Password">
-        <button onclick="login()">Login</button>
+        <h2>🔐 MTechify Admin</h2>
+        <p>Enter your admin password to continue</p>
+        <input type="password" id="adminPassword" placeholder="Admin Password" onkeydown="if(event.key==='Enter') login()">
+        <button onclick="login()">Login to Dashboard</button>
     </div>
 </div>
 
 <div id="dashboard" class="dashboard">
     <div class="dashboard-header">
-        <h1>📊 MTechify Labs Dashboard</h1>
-        <div>
-            <button class="refresh-btn" onclick="loadDashboard()">🔄 Refresh</button>
-            <button class="logout-btn" onclick="logout()">Logout</button>
+        <h1>📊 MTechify Labs — Admin Dashboard</h1>
+        <div class="header-btns">
+            <button class="btn-refresh" onclick="loadAll()">🔄 Refresh</button>
+            <button class="btn-logout" onclick="logout()">Logout</button>
         </div>
     </div>
-    
-    <div class="stats-grid" id="statsGrid"></div>
-    
-    <div class="section">
-        <h2>📞 Contact Form Submissions</h2>
-        <div id="contactsTable"></div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('overview',this)">📊 Overview</button>
+        <button class="tab-btn" onclick="switchTab('services',this)">⚙️ Services</button>
+        <button class="tab-btn" onclick="switchTab('pricing',this)">💰 Pricing</button>
+        <button class="tab-btn" onclick="switchTab('contacts',this)">📞 Contacts</button>
+        <button class="tab-btn" onclick="switchTab('reviews',this)">⭐ Reviews</button>
+        <button class="tab-btn" onclick="switchTab('candidates',this)">💼 Candidates</button>
+        <button class="tab-btn" onclick="switchTab('visitors',this)">👥 Visitors</button>
     </div>
-    
-    <div class="section">
-        <h2>⭐ Client Reviews</h2>
-        <div id="reviewsTable"></div>
+
+    <div id="tab-overview" class="tab-content active">
+        <div class="stats-grid" id="statsGrid"></div>
+        <div class="section">
+            <h2>📋 Welcome</h2>
+            <p style="color:#666;margin-top:8px;font-size:0.9rem;">Use the tabs above to manage services, pricing, contacts, reviews, and more.</p>
+        </div>
     </div>
-    
-    <div class="section">
-        <h2>💼 Job Candidates</h2>
-        <div id="candidatesTable"></div>
+
+    <div id="tab-services" class="tab-content">
+        <div class="section">
+            <div class="section-header">
+                <h2>⚙️ Services Manager</h2>
+                <button class="btn-add" onclick="openModal('modalAddService')">+ Add New Service</button>
+            </div>
+            <p style="color:#666;font-size:0.85rem;margin-bottom:16px;">🔒 Permanent services cannot be deleted. Toggle Active/Coming Soon anytime.</p>
+            <div id="servicesTableWrapper"></div>
+        </div>
     </div>
-    
-    <div class="section">
-        <h2>👥 Recent Visitors</h2>
-        <div id="visitorsTable"></div>
+
+    <div id="tab-pricing" class="tab-content">
+        <div class="section">
+            <div class="section-header">
+                <h2>💰 Pricing Manager</h2>
+                <button class="btn-add" onclick="openModal('modalAddPricing')">+ Add Package</button>
+            </div>
+            <div style="margin-bottom:16px;">
+                <label style="font-size:0.85rem;font-weight:600;color:#374151;">Filter: </label>
+                <select id="pricingFilter" onchange="renderPricingTable()" style="margin-left:10px;padding:6px 12px;border:1px solid #ddd;border-radius:6px;font-family:inherit;">
+                    <option value="all">All Services</option>
+                    <option value="graphic_design">Graphic Design</option>
+                    <option value="web_development">Web Development</option>
+                    <option value="erp_software">ERP Software</option>
+                    <option value="social_media">Social Media</option>
+                    <option value="ai_automation">AI Automation</option>
+                    <option value="custom_software">Custom Software</option>
+                </select>
+            </div>
+            <div id="pricingTableWrapper"></div>
+        </div>
+    </div>
+
+    <div id="tab-contacts" class="tab-content">
+        <div class="section">
+            <h2>📞 Contact Submissions</h2>
+            <div id="contactsTable" style="margin-top:16px;"></div>
+        </div>
+    </div>
+
+    <div id="tab-reviews" class="tab-content">
+        <div class="section">
+            <h2>⭐ Client Reviews</h2>
+            <div id="reviewsTable" style="margin-top:16px;"></div>
+        </div>
+    </div>
+
+    <div id="tab-candidates" class="tab-content">
+        <div class="section">
+            <h2>💼 Job Candidates</h2>
+            <div id="candidatesTable" style="margin-top:16px;"></div>
+        </div>
+    </div>
+
+    <div id="tab-visitors" class="tab-content">
+        <div class="section">
+            <h2>👥 Recent Visitors</h2>
+            <div id="visitorsTable" style="margin-top:16px;"></div>
+        </div>
     </div>
 </div>
 
+<!-- ADD SERVICE MODAL -->
+<div id="modalAddService" class="modal-overlay">
+    <div class="modal">
+        <h3>➕ Add New Service</h3>
+        <label>Service Key (unique, no spaces e.g. video_editing)</label>
+        <input type="text" id="newSvcKey" placeholder="e.g. video_editing">
+        <label>Service Name</label>
+        <input type="text" id="newSvcName" placeholder="e.g. Video Editing">
+        <label>Icon (emoji)</label>
+        <input type="text" id="newSvcIcon" placeholder="🎬" maxlength="5">
+        <label>Description</label>
+        <textarea id="newSvcDesc" placeholder="Brief description..."></textarea>
+        <label>Status</label>
+        <select id="newSvcStatus">
+            <option value="coming_soon">Coming Soon</option>
+            <option value="active">Active</option>
+        </select>
+        <div class="modal-btns">
+            <button class="btn-cancel" onclick="closeModal('modalAddService')">Cancel</button>
+            <button class="btn-save" onclick="addService()">Add Service</button>
+        </div>
+    </div>
+</div>
+
+<!-- ADD PRICING MODAL -->
+<div id="modalAddPricing" class="modal-overlay">
+    <div class="modal">
+        <h3>➕ Add Pricing Package</h3>
+        <label>Service</label>
+        <select id="newPkgService">
+            <option value="graphic_design">Graphic Design</option>
+            <option value="web_development">Web Development</option>
+            <option value="erp_software">ERP Software</option>
+            <option value="social_media">Social Media</option>
+            <option value="ai_automation">AI Automation</option>
+            <option value="custom_software">Custom Software</option>
+        </select>
+        <label>Package Name</label>
+        <input type="text" id="newPkgName" placeholder="e.g. Starter Package">
+        <label>Price (PKR)</label>
+        <input type="number" id="newPkgPrice" placeholder="e.g. 2000">
+        <label>Description</label>
+        <input type="text" id="newPkgDesc" placeholder="Short description">
+        <label>Features (one per line)</label>
+        <textarea id="newPkgFeatures" placeholder="Logo Design&#10;Business Card&#10;Letterhead"></textarea>
+        <label>Mark as Popular?</label>
+        <select id="newPkgPopular">
+            <option value="0">No</option>
+            <option value="1">Yes - Show Best Value Badge</option>
+        </select>
+        <div class="modal-btns">
+            <button class="btn-cancel" onclick="closeModal('modalAddPricing')">Cancel</button>
+            <button class="btn-save" onclick="addPricing()">Add Package</button>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT PRICING MODAL -->
+<div id="modalEditPricing" class="modal-overlay">
+    <div class="modal">
+        <h3>✏️ Edit Pricing Package</h3>
+        <input type="hidden" id="editPkgId">
+        <label>Package Name</label>
+        <input type="text" id="editPkgName">
+        <label>Price (PKR)</label>
+        <input type="number" id="editPkgPrice">
+        <label>Description</label>
+        <input type="text" id="editPkgDesc">
+        <label>Features (one per line)</label>
+        <textarea id="editPkgFeatures"></textarea>
+        <label>Mark as Popular?</label>
+        <select id="editPkgPopular">
+            <option value="0">No</option>
+            <option value="1">Yes - Show Best Value Badge</option>
+        </select>
+        <div class="modal-btns">
+            <button class="btn-cancel" onclick="closeModal('modalEditPricing')">Cancel</button>
+            <button class="btn-save" onclick="savePricing()">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<div id="adminToast"></div>
+
 <script>
-    const API_URL = 'https://mtechify-labs.onrender.com';
-    
-    function login() {
-        const pwd = document.getElementById('adminPassword').value;
-        if (pwd === 'mtechify2026') {
-            localStorage.setItem('admin_auth', 'logged_in');
-            document.getElementById('loginPage').style.display = 'none';
-            document.getElementById('dashboard').style.display = 'block';
-            loadDashboard();
-        } else {
-            alert('Wrong password!');
-        }
-    }
-    
-    function logout() {
-        localStorage.removeItem('admin_auth');
-        document.getElementById('loginPage').style.display = 'flex';
-        document.getElementById('dashboard').style.display = 'none';
-    }
-    
-    async function loadDashboard() {
-        try {
-            const response = await fetch(`${API_URL}/api/admin/data?password=mtechify2026`);
-            const data = await response.json();
-            
-            // Stats Cards
-            document.getElementById('statsGrid').innerHTML = `
-                <div class="stat-card"><h3>📞 Total Contacts</h3><div class="number">${data.stats?.total_contacts || 0}</div></div>
-                <div class="stat-card"><h3>⭐ Total Reviews</h3><div class="number">${data.stats?.total_reviews || 0}</div></div>
-                <div class="stat-card"><h3>⏳ Pending Reviews</h3><div class="number">${data.stats?.pending_reviews || 0}</div></div>
-                <div class="stat-card"><h3>✅ Approved Reviews</h3><div class="number">${data.stats?.approved_reviews || 0}</div></div>
-                <div class="stat-card"><h3>💼 Job Candidates</h3><div class="number">${data.stats?.total_candidates || 0}</div></div>
-                <div class="stat-card"><h3>👥 Total Visitors</h3><div class="number">${data.stats?.total_visitors || 0}</div></div>
-            `;
-            
-            // Contacts Table
-            if (data.contacts && data.contacts.length) {
-                document.getElementById('contactsTable').innerHTML = `
-                    <table><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Service</th><th>Message</th><th>Date</th></tr></thead>
-                    <tbody>${data.contacts.map(c => `<tr><td>${c.id}</td><td>${c.name}</td><td>${c.email}</td><td>${c.phone}</td><td>${c.service}</td><td>${(c.message || '').substring(0, 50)}...</td><td>${(c.created_at || '').split(' ')[0]}</td></tr>`).join('')}</tbody></table>
-                `;
-            } else {
-                document.getElementById('contactsTable').innerHTML = '<p>No contacts yet.</p>';
-            }
-            
-            // Reviews Table
-            if (data.reviews && data.reviews.length) {
-                document.getElementById('reviewsTable').innerHTML = `
-                    <table><thead><tr><th>ID</th><th>Client</th><th>Rating</th><th>Review</th><th>Status</th><th>Action</th></tr></thead>
-                    <tbody>${data.reviews.map(r => `
-                        <tr>
-                            <td>${r.id}</td><td>${r.client_name}</td><td>${'⭐'.repeat(r.rating)}</td>
-                            <td>${(r.review_text || '').substring(0, 80)}...</td>
-                            <td><span class="badge ${r.status === 'approved' ? 'badge-approved' : 'badge-pending'}">${r.status}</span></td>
-                            <td>${r.status !== 'approved' ? `<button class="btn-approve" onclick="approveReview(${r.id})">Approve</button>` : '✓'}</td>
-                        </tr>
-                    `).join('')}</tbody></table>
-                `;
-            } else {
-                document.getElementById('reviewsTable').innerHTML = '<p>No reviews yet.</p>';
-            }
-            
-            // Candidates Table
-            if (data.candidates && data.candidates.length) {
-                document.getElementById('candidatesTable').innerHTML = `
-                    <table><thead><tr><th>ID</th><th>Name</th><th>Expertise</th><th>WhatsApp</th><th>Experience</th><th>Status</th></tr></thead>
-                    <tbody>${data.candidates.map(c => `<tr><td>${c.id}</td><td>${c.name}</td><td>${c.expertise}</td><td>${c.whatsapp}</td><td>${c.experience || 'N/A'}</td><td>${c.status}</td></tr>`).join('')}</tbody></table>
-                `;
-            } else {
-                document.getElementById('candidatesTable').innerHTML = '<p>No candidates yet.</p>';
-            }
-            
-            // Visitors Table
-            if (data.visitors && data.visitors.length) {
-                document.getElementById('visitorsTable').innerHTML = `
-                    <table><thead><tr><th>IP</th><th>Page</th><th>Device</th><th>Time</th></tr></thead>
-                    <tbody>${data.visitors.map(v => `<tr><td>${v.ip}</td><td>${v.page}</td><td>${v.device}</td><td>${v.time}</td></tr>`).slice(0, 20).join('')}</tbody></table>
-                `;
-            } else {
-                document.getElementById('visitorsTable').innerHTML = '<p>No visitors tracked yet.</p>';
-            }
-        } catch (err) {
-            console.error('Error:', err);
-            document.getElementById('statsGrid').innerHTML = '<div class="stat-card"><h3>Error loading data</h3><div class="number">!</div></div>';
-        }
-    }
-    
-    async function approveReview(id) {
-        try {
-            const response = await fetch(`${API_URL}/api/admin/approve-review/${id}?password=mtechify2026`);
-            if (response.ok) {
-                alert('Review approved!');
-                loadDashboard();
-            } else {
-                alert('Error approving review');
-            }
-        } catch (err) {
-            alert('Error: ' + err.message);
-        }
-    }
-    
-    // Auto-check login
-    if (localStorage.getItem('admin_auth') === 'logged_in') {
-        document.getElementById('loginPage').style.display = 'none';
-        document.getElementById('dashboard').style.display = 'block';
-        loadDashboard();
-    }
+const API_URL = 'http://localhost:8001';
+const PWD = 'mtechify2026';
+let allServices = [];
+let allPricing = [];
+let adminData = {};
+
+function toast(msg, type='success') {
+    const el = document.getElementById('adminToast');
+    el.textContent = msg;
+    el.style.background = type==='success' ? '#16A34A' : type==='error' ? '#dc2626' : '#1A3C6E';
+    el.style.display = 'block';
+    setTimeout(() => el.style.display='none', 3000);
+}
+
+function login() {
+    const pwd = document.getElementById('adminPassword').value;
+    if (pwd === PWD) {
+        localStorage.setItem('admin_auth','yes');
+        document.getElementById('loginPage').style.display='none';
+        document.getElementById('dashboard').style.display='block';
+        loadAll();
+    } else { toast('Wrong password!','error'); }
+}
+
+function logout() { localStorage.removeItem('admin_auth'); location.reload(); }
+
+function switchTab(name, btn) {
+    document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('tab-'+name).classList.add('active');
+    btn.classList.add('active');
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+async function loadAll() {
+    await Promise.all([loadAdminData(), loadServicesData(), loadPricingData()]);
+}
+
+async function loadAdminData() {
+    try {
+        const res = await fetch(`${API_URL}/api/admin/data?password=${PWD}`);
+        adminData = await res.json();
+        renderStats(); renderContacts(); renderReviews(); renderCandidates(); renderVisitors();
+    } catch(e) { toast('Error loading data','error'); }
+}
+
+function renderStats() {
+    const s = adminData.stats || {};
+    document.getElementById('statsGrid').innerHTML = `
+        <div class="stat-card"><h3>📞 Total Contacts</h3><div class="number">${s.total_contacts||0}</div></div>
+        <div class="stat-card"><h3>⭐ Total Reviews</h3><div class="number">${s.total_reviews||0}</div></div>
+        <div class="stat-card"><h3>⏳ Pending Reviews</h3><div class="number">${s.pending_reviews||0}</div></div>
+        <div class="stat-card"><h3>✅ Approved Reviews</h3><div class="number">${s.approved_reviews||0}</div></div>
+        <div class="stat-card"><h3>💼 Candidates</h3><div class="number">${s.total_candidates||0}</div></div>
+        <div class="stat-card"><h3>👥 Visitors</h3><div class="number">${s.total_visitors||0}</div></div>`;
+}
+
+async function loadServicesData() {
+    try {
+        const res = await fetch(`${API_URL}/api/services`);
+        const data = await res.json();
+        allServices = data.services || [];
+        renderServicesTable();
+    } catch(e) { toast('Error loading services','error'); }
+}
+
+function renderServicesTable() {
+    const wrap = document.getElementById('servicesTableWrapper');
+    if (!allServices.length) { wrap.innerHTML='<p>No services found.</p>'; return; }
+    wrap.innerHTML = `<table>
+        <thead><tr><th>Icon</th><th>Service</th><th>Description</th><th>Status</th><th>Type</th><th>Actions</th></tr></thead>
+        <tbody>${allServices.map(s=>`<tr>
+            <td style="font-size:1.5rem">${s.icon}</td>
+            <td><strong>${s.service_name}</strong><br><small style="color:#999">${s.service_key}</small></td>
+            <td style="max-width:200px;font-size:0.82rem;color:#555">${(s.description||'').substring(0,70)}...</td>
+            <td><span class="badge ${s.is_active==='active'?'badge-active':'badge-soon'}">${s.is_active==='active'?'✓ Active':'🚀 Coming Soon'}</span></td>
+            <td><span class="badge ${s.is_permanent?'badge-permanent':'badge-soon'}">${s.is_permanent?'🔒 Permanent':'Custom'}</span></td>
+            <td style="display:flex;gap:6px;flex-wrap:wrap">
+                <button class="btn-sm ${s.is_active==='active'?'btn-toggle-active':'btn-toggle-soon'}" onclick="toggleService('${s.service_key}')">
+                    ${s.is_active==='active'?'Set Coming Soon':'Activate'}
+                </button>
+                ${!s.is_permanent?`<button class="btn-sm btn-delete" onclick="deleteService('${s.service_key}','${s.service_name}')">Delete</button>`:''}
+            </td>
+        </tr>`).join('')}</tbody></table>`;
+}
+
+async function toggleService(key) {
+    try {
+        const res = await fetch(`${API_URL}/api/admin/service/toggle`,{
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({password:PWD, service_key:key})
+        });
+        const data = await res.json();
+        toast(`✅ ${data.service}: now ${data.new_status}`);
+        await loadServicesData();
+    } catch(e) { toast('Error toggling service','error'); }
+}
+
+async function addService() {
+    const key = document.getElementById('newSvcKey').value.trim().replace(/\s+/g,'_').toLowerCase();
+    const name = document.getElementById('newSvcName').value.trim();
+    const icon = document.getElementById('newSvcIcon').value.trim() || '🔧';
+    const desc = document.getElementById('newSvcDesc').value.trim();
+    const status = document.getElementById('newSvcStatus').value;
+    if (!key||!name) { toast('Key and name required!','error'); return; }
+    try {
+        const res = await fetch(`${API_URL}/api/admin/service/add`,{
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({password:PWD, service_key:key, service_name:name, icon, description:desc, is_active:status})
+        });
+        const data = await res.json();
+        if (data.success) {
+            toast('✅ Service added!');
+            closeModal('modalAddService');
+            ['newSvcKey','newSvcName','newSvcIcon','newSvcDesc'].forEach(id=>document.getElementById(id).value='');
+            await loadServicesData();
+        } else { toast(data.detail||'Error','error'); }
+    } catch(e) { toast('Error adding service','error'); }
+}
+
+async function deleteService(key, name) {
+    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    try {
+        const res = await fetch(`${API_URL}/api/admin/service/${key}?password=${PWD}`,{method:'DELETE'});
+        const data = await res.json();
+        if (data.success) { toast('✅ Service deleted'); await loadServicesData(); }
+        else { toast(data.detail||'Cannot delete','error'); }
+    } catch(e) { toast('Error deleting','error'); }
+}
+
+async function loadPricingData() {
+    try {
+        const res = await fetch(`${API_URL}/api/pricing`);
+        const data = await res.json();
+        allPricing = data.packages || [];
+        renderPricingTable();
+    } catch(e) { toast('Error loading pricing','error'); }
+}
+
+function renderPricingTable() {
+    const filter = document.getElementById('pricingFilter')?.value || 'all';
+    const filtered = filter==='all' ? allPricing : allPricing.filter(p=>p.service_key===filter);
+    const wrap = document.getElementById('pricingTableWrapper');
+    if (!filtered.length) { wrap.innerHTML='<p style="color:#666;padding:20px 0">No packages found.</p>'; return; }
+    wrap.innerHTML = `<table>
+        <thead><tr><th>Service</th><th>Package</th><th>Price</th><th>Description</th><th>Popular</th><th>Actions</th></tr></thead>
+        <tbody>${filtered.map(p=>`<tr>
+            <td><span class="badge badge-soon" style="font-size:0.72rem">${p.service_key.replace(/_/g,' ')}</span></td>
+            <td><strong>${p.package_name}</strong></td>
+            <td><strong style="color:#1A3C6E">PKR ${(p.price||0).toLocaleString()}</strong></td>
+            <td style="font-size:0.82rem;color:#555">${p.description||''}</td>
+            <td>${p.is_popular?'🔥 Yes':'—'}</td>
+            <td style="display:flex;gap:6px">
+                <button class="btn-sm btn-edit" onclick='openEditPricing(${p.id},"${p.package_name}",${p.price},"${(p.description||'').replace(/"/g,"'")}",${JSON.stringify(p.features||"[]")},${p.is_popular})'>Edit</button>
+                <button class="btn-sm btn-delete" onclick="deletePricing(${p.id},'${p.package_name}')">Delete</button>
+            </td>
+        </tr>`).join('')}</tbody></table>`;
+}
+
+function openEditPricing(id, name, price, desc, featuresJson, popular) {
+    document.getElementById('editPkgId').value = id;
+    document.getElementById('editPkgName').value = name;
+    document.getElementById('editPkgPrice').value = price;
+    document.getElementById('editPkgDesc').value = desc;
+    document.getElementById('editPkgPopular').value = popular;
+    try {
+        const feats = typeof featuresJson==='string' ? JSON.parse(featuresJson) : featuresJson;
+        document.getElementById('editPkgFeatures').value = Array.isArray(feats) ? feats.join('\n') : '';
+    } catch(e) { document.getElementById('editPkgFeatures').value=''; }
+    openModal('modalEditPricing');
+}
+
+async function savePricing() {
+    const id = document.getElementById('editPkgId').value;
+    const name = document.getElementById('editPkgName').value.trim();
+    const price = parseInt(document.getElementById('editPkgPrice').value)||0;
+    const desc = document.getElementById('editPkgDesc').value.trim();
+    const featuresRaw = document.getElementById('editPkgFeatures').value.trim();
+    const features = JSON.stringify(featuresRaw.split('\n').map(f=>f.trim()).filter(Boolean));
+    const popular = parseInt(document.getElementById('editPkgPopular').value);
+    try {
+        const res = await fetch(`${API_URL}/api/admin/pricing/${id}`,{
+            method:'PUT', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({password:PWD, package_name:name, price, description:desc, features, is_popular:popular})
+        });
+        const data = await res.json();
+        if (data.success) { toast('✅ Package updated!'); closeModal('modalEditPricing'); await loadPricingData(); }
+        else { toast(data.detail||'Error','error'); }
+    } catch(e) { toast('Error updating','error'); }
+}
+
+async function addPricing() {
+    const svc = document.getElementById('newPkgService').value;
+    const name = document.getElementById('newPkgName').value.trim();
+    const price = parseInt(document.getElementById('newPkgPrice').value)||0;
+    const desc = document.getElementById('newPkgDesc').value.trim();
+    const featuresRaw = document.getElementById('newPkgFeatures').value.trim();
+    const features = JSON.stringify(featuresRaw.split('\n').map(f=>f.trim()).filter(Boolean));
+    const popular = parseInt(document.getElementById('newPkgPopular').value);
+    if (!name||!price) { toast('Name and price required!','error'); return; }
+    try {
+        const res = await fetch(`${API_URL}/api/admin/pricing/add`,{
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({password:PWD, service_key:svc, package_name:name, price, description:desc, features, is_popular:popular})
+        });
+        const data = await res.json();
+        if (data.success) {
+            toast('✅ Package added!');
+            closeModal('modalAddPricing');
+            ['newPkgName','newPkgPrice','newPkgDesc','newPkgFeatures'].forEach(id=>document.getElementById(id).value='');
+            await loadPricingData();
+        } else { toast(data.detail||'Error','error'); }
+    } catch(e) { toast('Error adding package','error'); }
+}
+
+async function deletePricing(id, name) {
+    if (!confirm(`Delete "${name}"?`)) return;
+    try {
+        const res = await fetch(`${API_URL}/api/admin/pricing/${id}?password=${PWD}`,{method:'DELETE'});
+        const data = await res.json();
+        if (data.success) { toast('✅ Deleted'); await loadPricingData(); }
+        else { toast(data.detail||'Error','error'); }
+    } catch(e) { toast('Error deleting','error'); }
+}
+
+function renderContacts() {
+    const el = document.getElementById('contactsTable');
+    const d = adminData.contacts||[];
+    if (!d.length) { el.innerHTML='<p style="color:#666">No contacts yet.</p>'; return; }
+    el.innerHTML = `<table><thead><tr><th>#</th><th>Name</th><th>Phone</th><th>Service</th><th>Message</th><th>Date</th></tr></thead>
+    <tbody>${d.map(c=>`<tr><td>${c.id}</td><td>${c.name}<br><small style="color:#999">${c.email}</small></td><td>${c.phone}</td><td>${c.service}</td><td style="font-size:0.82rem">${(c.message||'').substring(0,60)}...</td><td style="font-size:0.8rem">${(c.created_at||'').split(' ')[0]}</td></tr>`).join('')}</tbody></table>`;
+}
+
+function renderReviews() {
+    const el = document.getElementById('reviewsTable');
+    const d = adminData.reviews||[];
+    if (!d.length) { el.innerHTML='<p style="color:#666">No reviews yet.</p>'; return; }
+    el.innerHTML = `<table><thead><tr><th>#</th><th>Client</th><th>Rating</th><th>Review</th><th>Status</th><th>Action</th></tr></thead>
+    <tbody>${d.map(r=>`<tr>
+        <td>${r.id}</td><td>${r.client_name}</td><td>${'⭐'.repeat(r.rating)}</td>
+        <td style="font-size:0.82rem;max-width:200px">${(r.review_text||'').substring(0,80)}...</td>
+        <td><span class="badge ${r.status==='approved'?'badge-approved':'badge-pending'}">${r.status}</span></td>
+        <td>${r.status!=='approved'?`<button class="btn-sm btn-approve" onclick="approveReview(${r.id})">Approve</button>`:'✓'}</td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+async function approveReview(id) {
+    try {
+        const res = await fetch(`${API_URL}/api/admin/approve-review/${id}?password=${PWD}`);
+        if (res.ok) { toast('✅ Review approved!'); await loadAdminData(); }
+        else { toast('Error approving','error'); }
+    } catch(e) { toast('Error: '+e.message,'error'); }
+}
+
+function renderCandidates() {
+    const el = document.getElementById('candidatesTable');
+    const d = adminData.candidates||[];
+    if (!d.length) { el.innerHTML='<p style="color:#666">No candidates yet.</p>'; return; }
+    el.innerHTML = `<table><thead><tr><th>#</th><th>Name</th><th>Expertise</th><th>WhatsApp</th><th>Experience</th><th>Status</th></tr></thead>
+    <tbody>${d.map(c=>`<tr><td>${c.id}</td><td>${c.name}</td><td>${c.expertise}</td><td>${c.whatsapp}</td><td>${c.experience||'N/A'}</td><td>${c.status}</td></tr>`).join('')}</tbody></table>`;
+}
+
+function renderVisitors() {
+    const el = document.getElementById('visitorsTable');
+    const d = adminData.visitors||[];
+    if (!d.length) { el.innerHTML='<p style="color:#666">No visitors yet.</p>'; return; }
+    el.innerHTML = `<table><thead><tr><th>IP</th><th>Page</th><th>Device</th><th>Time</th></tr></thead>
+    <tbody>${d.slice(0,30).map(v=>`<tr><td>${v.ip}</td><td>${v.page}</td><td>${v.device}</td><td style="font-size:0.8rem">${v.time}</td></tr>`).join('')}</tbody></table>`;
+}
+
+if (localStorage.getItem('admin_auth')==='yes') {
+    document.getElementById('loginPage').style.display='none';
+    document.getElementById('dashboard').style.display='block';
+    loadAll();
+}
 </script>
 </body>
 </html>

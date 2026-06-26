@@ -83,7 +83,41 @@ class Visitor(Base):
     os = Column(String(50))
     visited_at = Column(DateTime, default=datetime.now)
 
-# Create ALL tables
+# ============================================
+# NEW — Service Config Table
+# ============================================
+class ServiceConfig(Base):
+    __tablename__ = "service_configs"
+    id = Column(Integer, primary_key=True, index=True)
+    service_key = Column(String(50), unique=True, nullable=False)
+    service_name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    icon = Column(String(10), nullable=True)
+    is_active = Column(String(20), default="coming_soon")  # "active" or "coming_soon"
+    is_permanent = Column(Integer, default=0)              # 1 = cannot delete
+    display_order = Column(Integer, default=0)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+# ============================================
+# NEW — Pricing Packages Table
+# ============================================
+class PricingPackage(Base):
+    __tablename__ = "pricing_packages"
+    id = Column(Integer, primary_key=True, index=True)
+    service_key = Column(String(50), nullable=False)       # e.g. "graphic_design"
+    package_name = Column(String(100), nullable=False)     # e.g. "Logo Only"
+    price = Column(Integer, nullable=False)                # e.g. 500
+    currency = Column(String(10), default="PKR")
+    description = Column(Text, nullable=True)
+    features = Column(Text, nullable=True)                 # JSON string
+    is_popular = Column(Integer, default=0)                # 1 = show "Best Value" badge
+    is_active = Column(Integer, default=1)
+    display_order = Column(Integer, default=0)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+# ============================================
+# Create ALL tables (existing + new)
+# ============================================
 Base.metadata.create_all(bind=engine)
 
 def get_db():

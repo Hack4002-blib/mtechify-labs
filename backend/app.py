@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from database import get_db, ContactSubmission, ChatLog, Lead, Review, Candidate, Visitor, ServiceConfig, PricingPackage
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 import os
@@ -405,6 +406,175 @@ def approve_review(review_id: int, password: str, db: Session = Depends(get_db))
     db.commit()
     print(f"✅ Review {review_id} approved")
     return {"success": True, "message": "Review approved"}
+
+# ============================================
+# SEED DEFAULT DATA (runs once)
+# ============================================
+def seed_default_data(db):
+    # Seed Services
+    if db.query(ServiceConfig).count() == 0:
+        defaults = [
+            ServiceConfig(service_key="graphic_design", service_name="Graphic Design", description="Logo, banner, poster, business card, social media posts, and complete brand identity.", icon="🎨", is_active="active", is_permanent=1, display_order=1),
+            ServiceConfig(service_key="web_development", service_name="Web Development", description="Business websites, e-commerce stores, landing pages, and web applications.", icon="💻", is_active="active", is_permanent=1, display_order=2),
+            ServiceConfig(service_key="erp_software", service_name="ERP Software", description="Inventory management, billing system, sales tracking, and reporting tools.", icon="📊", is_active="coming_soon", is_permanent=1, display_order=3),
+            ServiceConfig(service_key="social_media", service_name="Social Media Marketing", description="Meta ads management, content creation, page growth, and engagement strategies.", icon="📱", is_active="coming_soon", is_permanent=1, display_order=4),
+            ServiceConfig(service_key="ai_automation", service_name="AI Automation", description="Custom AI chatbots, workflow automation, lead generation bots, and AI agents.", icon="🤖", is_active="coming_soon", is_permanent=1, display_order=5),
+            ServiceConfig(service_key="custom_software", service_name="Custom Software", description="Tailored desktop applications, business tools, and automation solutions.", icon="⚙️", is_active="coming_soon", is_permanent=1, display_order=6),
+        ]
+        for s in defaults:
+            db.add(s)
+
+    # Seed Pricing
+    if db.query(PricingPackage).count() == 0:
+        packages = [
+            # Graphic Design
+            PricingPackage(service_key="graphic_design", package_name="Logo Only", price=500, description="Perfect for startups & small shops", features='["1 Unique Logo Concept","High Resolution PNG + Vector","2 Free Revisions","Same Day Delivery (6-8 hrs)","Commercial Rights"]', is_popular=0, display_order=1),
+            PricingPackage(service_key="graphic_design", package_name="Starter Branding", price=1200, description="Most chosen by businesses", features='["Logo + Business Card + Letterhead","PNG + PDF + Vector","Unlimited Revisions","Same Day Delivery","Commercial Rights + Source File"]', is_popular=1, display_order=2),
+            PricingPackage(service_key="graphic_design", package_name="Complete Branding", price=2000, description="Full brand identity package", features='["Logo + Card + Banner + FB Cover","All Formats (PNG, PDF, SVG)","Unlimited Revisions","Priority Delivery","Complete Brand Guide","1 Month Free Support"]', is_popular=0, display_order=3),
+            PricingPackage(service_key="graphic_design", package_name="Premium Identity Pack", price=3500, description="Ultimate branding solution", features='["Everything in Complete Branding","Social Media Kit (5 templates)","Company Profile Design","48hr Delivery","Dedicated Support"]', is_popular=0, display_order=4),
+            # Web Development
+            PricingPackage(service_key="web_development", package_name="Starter Landing Page", price=7000, description="Single page professional site", features='["1-Page Responsive Site","WhatsApp/Contact Integration","Free Netlify Hosting Setup","Mobile Optimized","Basic SEO"]', is_popular=0, display_order=1),
+            PricingPackage(service_key="web_development", package_name="Business Website", price=15000, description="Complete business presence", features='["3-5 Pages (Home,About,Services,Contact)","Mobile Responsive","Basic SEO Setup","Domain Setup Support","WhatsApp Integration"]', is_popular=1, display_order=2),
+            PricingPackage(service_key="web_development", package_name="Premium Business Site", price=25000, description="Advanced business website", features='["Up to 8 Pages","Custom Design","Blog/CMS","Advanced SEO","Analytics Setup","1 Month Support"]', is_popular=0, display_order=3),
+            PricingPackage(service_key="web_development", package_name="E-commerce Starter", price=40000, description="Start selling online", features='["Product Catalog (30 items)","Cart & Checkout","EasyPaisa/JazzCash/COD","Mobile Responsive","Order Management"]', is_popular=0, display_order=4),
+        ]
+        for p in packages:
+            db.add(p)
+
+    db.commit()
+
+@app.on_event("startup")
+async def startup_event():
+    db = next(get_db())
+    try:
+        seed_default_data(db)
+        print("✅ Default data seeded")
+    except Exception as e:
+        print(f"Seed error: {e}")
+    finally:
+        db.close()
+
+# ============================================
+# PUBLIC — Services & Pricing APIs
+# ============================================
+@app.get("/api/services")
+def get_services(db: Session = Depends(get_db)):
+    services = db.query(ServiceConfig).order_by(ServiceConfig.display_order).all()
+    return {"services": [
+        {"id": s.id, "service_key": s.service_key, "service_name": s.service_name,
+         "description": s.description, "icon": s.icon, "is_active": s.is_active,
+         "is_permanent": s.is_permanent, "display_order": s.display_order}
+        for s in services
+    ]}
+
+@app.get("/api/pricing")
+def get_pricing(db: Session = Depends(get_db)):
+    packages = db.query(PricingPackage).filter(
+        PricingPackage.is_active == 1
+    ).order_by(PricingPackage.service_key, PricingPackage.display_order).all()
+    return {"packages": [
+        {"id": p.id, "service_key": p.service_key, "package_name": p.package_name,
+         "price": p.price, "currency": p.currency, "description": p.description,
+         "features": p.features, "is_popular": p.is_popular, "display_order": p.display_order}
+        for p in packages
+    ]}
+
+# ============================================
+# ADMIN — Services Management
+# ============================================
+@app.post("/api/admin/service/toggle")
+def toggle_service(data: dict, db: Session = Depends(get_db)):
+    if not verify_password(data.get("password", "")):
+        raise HTTPException(status_code=401, detail="Wrong password")
+    service = db.query(ServiceConfig).filter(ServiceConfig.service_key == data.get("service_key")).first()
+    if not service:
+        raise HTTPException(status_code=404, detail="Service not found")
+    service.is_active = "active" if service.is_active == "coming_soon" else "coming_soon"
+    db.commit()
+    return {"success": True, "new_status": service.is_active, "service": service.service_name}
+
+@app.post("/api/admin/service/add")
+def add_service(data: dict, db: Session = Depends(get_db)):
+    if not verify_password(data.get("password", "")):
+        raise HTTPException(status_code=401, detail="Wrong password")
+    # Check duplicate
+    existing = db.query(ServiceConfig).filter(ServiceConfig.service_key == data.get("service_key")).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Service key already exists")
+    service = ServiceConfig(
+        service_key=data.get("service_key", "")[:50],
+        service_name=data.get("service_name", "")[:100],
+        description=data.get("description", "")[:500],
+        icon=data.get("icon", "🔧")[:10],
+        is_active=data.get("is_active", "coming_soon"),
+        is_permanent=0,
+        display_order=data.get("display_order", 99)
+    )
+    db.add(service)
+    db.commit()
+    return {"success": True, "message": "Service added", "id": service.id}
+
+@app.delete("/api/admin/service/{service_key}")
+def delete_service(service_key: str, password: str, db: Session = Depends(get_db)):
+    if not verify_password(password):
+        raise HTTPException(status_code=401, detail="Wrong password")
+    service = db.query(ServiceConfig).filter(ServiceConfig.service_key == service_key).first()
+    if not service:
+        raise HTTPException(status_code=404, detail="Service not found")
+    if service.is_permanent == 1:
+        raise HTTPException(status_code=403, detail="Cannot delete permanent service")
+    db.delete(service)
+    db.commit()
+    return {"success": True, "message": "Service deleted"}
+
+# ============================================
+# ADMIN — Pricing Management
+# ============================================
+@app.post("/api/admin/pricing/add")
+def add_pricing(data: dict, db: Session = Depends(get_db)):
+    if not verify_password(data.get("password", "")):
+        raise HTTPException(status_code=401, detail="Wrong password")
+    package = PricingPackage(
+        service_key=data.get("service_key", "")[:50],
+        package_name=data.get("package_name", "")[:100],
+        price=int(data.get("price", 0)),
+        currency=data.get("currency", "PKR"),
+        description=data.get("description", "")[:500],
+        features=data.get("features", "[]"),
+        is_popular=int(data.get("is_popular", 0)),
+        is_active=1,
+        display_order=data.get("display_order", 99)
+    )
+    db.add(package)
+    db.commit()
+    return {"success": True, "message": "Package added", "id": package.id}
+
+@app.put("/api/admin/pricing/{package_id}")
+def update_pricing(package_id: int, data: dict, db: Session = Depends(get_db)):
+    if not verify_password(data.get("password", "")):
+        raise HTTPException(status_code=401, detail="Wrong password")
+    package = db.query(PricingPackage).filter(PricingPackage.id == package_id).first()
+    if not package:
+        raise HTTPException(status_code=404, detail="Package not found")
+    if "package_name" in data: package.package_name = data["package_name"][:100]
+    if "price" in data: package.price = int(data["price"])
+    if "description" in data: package.description = data["description"][:500]
+    if "features" in data: package.features = data["features"]
+    if "is_popular" in data: package.is_popular = int(data["is_popular"])
+    if "is_active" in data: package.is_active = int(data["is_active"])
+    db.commit()
+    return {"success": True, "message": "Package updated"}
+
+@app.delete("/api/admin/pricing/{package_id}")
+def delete_pricing(package_id: int, password: str, db: Session = Depends(get_db)):
+    if not verify_password(password):
+        raise HTTPException(status_code=401, detail="Wrong password")
+    package = db.query(PricingPackage).filter(PricingPackage.id == package_id).first()
+    if not package:
+        raise HTTPException(status_code=404, detail="Package not found")
+    db.delete(package)
+    db.commit()
+    return {"success": True, "message": "Package deleted"}
 
 # ============================================
 # STATIC FILES — FRONTEND SERVE

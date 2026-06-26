@@ -1,4 +1,4 @@
-// ms-tech-solution/frontend/js/main.js
+// MTechify/frontend/js/main.js
 // API BASE URL
 const API_BASE_URL = 'https://mtechify-labs.onrender.com';
 
@@ -75,7 +75,7 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 });
 
 // ============================================
-// CHATBOT - CLEAN SIMPLE VERSION
+// CHATBOT - ENHANCED WITH CONTEXT MEMORY
 // ============================================
 const chatToggle = document.getElementById('chatToggle');
 const chatBox = document.getElementById('chatBox');
@@ -84,38 +84,110 @@ const chatMessages = document.getElementById('msgs');
 const chatInput = document.getElementById('chatIn');
 const chatSend = document.getElementById('chatBtn');
 
-// Toggle open/close
+// Context memory — last 5 messages
+let chatContext = [];
+
+// Toggle open/close with animation
 chatToggle?.addEventListener('click', () => {
-    if (chatBox.style.display === 'none' || chatBox.style.display === '') {
-        chatBox.style.display = 'flex';
+    const isOpen = chatBox.classList.contains('open');
+    if (isOpen) {
+        chatBox.classList.remove('open');
     } else {
-        chatBox.style.display = 'none';
+        chatBox.classList.add('open');
     }
 });
 
 chatClose?.addEventListener('click', () => {
-    chatBox.style.display = 'none';
+    chatBox.classList.remove('open');
 });
 
 // Add message to chat
 function addMessage(text, isUser = false) {
     if (!chatMessages) return;
     const div = document.createElement('div');
-    div.className = isUser ? 'user-message' : 'bot-message';
-    div.style.cssText = 'opacity:1!important;transform:none!important;animation:none!important;';
+    div.className = isUser ? 'user-msg' : 'bot-msg';
     div.textContent = text;
     chatMessages.appendChild(div);
     chatMessages.scrollTop = chatMessages.scrollHeight;
+    return div;
 }
 
-// Send message
+// Show typing indicator
+function showTyping() {
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'typing-indicator';
+    typingDiv.id = 'typingIndicator';
+    typingDiv.innerHTML = '<span></span><span></span><span></span>';
+    chatMessages.appendChild(typingDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    return typingDiv;
+}
+
+function removeTyping() {
+    const typing = document.getElementById('typingIndicator');
+    if (typing) typing.remove();
+}
+
+// Fallback responses with context
+function getFallbackReply(msg, context) {
+    const m = msg.toLowerCase();
+    
+    // Check if user is asking follow-up based on context
+    const lastBotMsg = context.filter(c => c.role === 'assistant').pop();
+    if (lastBotMsg && ['logo', 'pricing', 'website', 'erp'].some(k => lastBotMsg.content.toLowerCase().includes(k))) {
+        if (m.includes('how much') || m.includes('price') || m.includes('cost')) {
+            return "💰 Price details: Logo (PKR 800-2,500), Website (from PKR 15,000), ERP (custom quote). WhatsApp for exact quote!";
+        }
+    }
+    
+    if (m.includes('price') || m.includes('pricing') || m.includes('cost')) {
+        return "💰 **Our Pricing:**\n• Logo: Basic PKR 800, Standard PKR 1,500, Premium PKR 2,500\n• Website: from PKR 15,000\n• ERP: Custom quote\n• Social Media: from PKR 5,000/mo";
+    }
+    if (m.includes('logo')) {
+        return "🎨 **Logo Design:**\n• Premium quality, AI-powered\n• Same day delivery (6-8 hours)\n• 3 packages: Basic (PKR 800), Standard (PKR 1,500), Premium (PKR 2,500)\n• Unlimited revisions on Premium\n\nWant to see samples? WhatsApp us!";
+    }
+    if (m.includes('website') || m.includes('web')) {
+        return "🌐 **Web Development:**\n• Business websites from PKR 15,000\n• E-commerce stores\n• Landing pages & portfolios\n• Mobile responsive, SEO friendly\n\nComing soon! Early bird discount available. WhatsApp now!";
+    }
+    if (m.includes('erp') || m.includes('software')) {
+        return "📊 **ERP Software:**\n• Inventory management\n• Billing & invoicing\n• Sales reporting\n• Custom for retailers & wholesalers\n\nCustom quote based on your requirements. Share your business type!";
+    }
+    if (m.includes('delivery') || m.includes('time')) {
+        return "⚡ **Delivery Timeline:**\n• Logo: 6-8 hours (same day)\n• Website: 7-14 days\n• ERP: 2-4 weeks\n\nUrgent? WhatsApp for priority service!";
+    }
+    if (m.includes('whatsapp') || m.includes('contact') || m.includes('phone')) {
+        return "📞 **Contact Us:**\n• WhatsApp: +92 310 3888922\n• Email: hello.mtechifylabs@gmail.com\n• Response time: within 1 hour\n\nClick the WhatsApp button on bottom-left to chat directly!";
+    }
+    if (m.includes('hello') || m.includes('hi') || m.includes('salam')) {
+        return "👋 Assalamualaikum! Welcome to MTechify Labs.\n\nI can help you with:\n• 💰 Pricing details\n• 🎨 Logo design process\n• 🌐 Website development\n• 📊 ERP software\n• ⚡ Delivery time\n• 📞 Contact information\n\nWhat would you like to know?";
+    }
+    if (m.includes('review') || m.includes('feedback')) {
+        return "⭐ We love feedback! Share your experience in the 'Rate Your Experience' section on our website. Your review helps other businesses trust us!";
+    }
+    if (m.includes('career') || m.includes('job') || m.includes('work')) {
+        return "💼 Want to work with us? Visit the 'Work With MTechify Labs' section on our website. We're hiring designers, developers, and marketers!";
+    }
+    if (m.includes('mission') || m.includes('vision')) {
+        return "🎯 **Our Mission:** Empower Pakistani businesses with world-class digital solutions.\n\n🚀 **Our Vision:** Become Pakistan's most trusted full-service IT company.\n\nLearn more on our website!";
+    }
+    
+    return "🤔 Let me connect you with our team! WhatsApp us at +92 310 3888922 for personalized help. Or ask me about: pricing, logo, website, ERP, delivery, or contact.";
+}
+
+// Send message with context memory
 async function sendMessage() {
     const message = chatInput?.value.trim();
     if (!message) return;
 
     addMessage(message, true);
     chatInput.value = '';
-    addMessage('Typing...', false);
+    
+    // Store user message in context
+    chatContext.push({ role: 'user', content: message });
+    if (chatContext.length > 10) chatContext.shift();
+
+    // Show typing indicator
+    showTyping();
 
     try {
         const response = await fetch(`${API_BASE_URL}/api/chat`, {
@@ -127,19 +199,23 @@ async function sendMessage() {
             })
         });
 
-        const lastMsg = chatMessages.lastElementChild;
-        if (lastMsg && lastMsg.textContent === 'Typing...') lastMsg.remove();
+        removeTyping();
 
         if (response.ok) {
             const data = await response.json();
             addMessage(data.response, false);
+            chatContext.push({ role: 'assistant', content: data.response });
+            if (chatContext.length > 10) chatContext.shift();
         } else {
-            addMessage('⚠️ Connection issue. WhatsApp: +92 310 3888922', false);
+            const fallback = getFallbackReply(message, chatContext);
+            addMessage(fallback, false);
+            chatContext.push({ role: 'assistant', content: fallback });
         }
     } catch (err) {
-        const lastMsg = chatMessages.lastElementChild;
-        if (lastMsg && lastMsg.textContent === 'Typing...') lastMsg.remove();
-        addMessage('⚠️ Connection issue. WhatsApp: +92 310 3888922', false);
+        removeTyping();
+        const fallback = getFallbackReply(message, chatContext);
+        addMessage(fallback, false);
+        chatContext.push({ role: 'assistant', content: fallback });
     }
 }
 
@@ -160,7 +236,7 @@ chatInput?.addEventListener('keydown', (e) => {
 });
 
 // Quick replies
-document.querySelectorAll('.quick-replies button').forEach(btn => {
+document.querySelectorAll('.chatbot-quick button').forEach(btn => {
     btn.addEventListener('click', (e) => {
         e.preventDefault();
         const msg = btn.getAttribute('data-msg');
@@ -169,6 +245,16 @@ document.querySelectorAll('.quick-replies button').forEach(btn => {
             sendMessage();
         }
     });
+});
+
+// Click outside to close
+document.addEventListener('click', (e) => {
+    if (chatBox && chatToggle) {
+        const isClickInside = chatBox.contains(e.target) || chatToggle.contains(e.target);
+        if (!isClickInside && chatBox.classList.contains('open')) {
+            chatBox.classList.remove('open');
+        }
+    }
 });
 
 // ============================================
@@ -196,11 +282,11 @@ if (contactForm) {
                 body: JSON.stringify(formData)
             });
             if (response.ok) {
-                alert('✅ Message sent! We will contact you within 1 hour.');
+                showToast('✅ Message sent! We will contact you within 1 hour.');
                 contactForm.reset();
             } else throw new Error('Server error');
         } catch (err) {
-            alert('📋 We received your message! We will contact you on WhatsApp.');
+            showToast('📋 Message received! We will contact you soon.', 'info');
             contactForm.reset();
         }
         btn.textContent = originalText;
@@ -230,7 +316,7 @@ if (reviewForm) {
     reviewForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const rating = parseInt(document.getElementById('reviewRating')?.value || 0);
-        if (rating === 0) { alert('⭐ Please select a rating'); return; }
+        if (rating === 0) { showToast('⭐ Please select a rating first!', 'error'); return; }
         const reviewData = {
             client_name: document.getElementById('reviewName')?.value || '',
             rating: rating,
@@ -248,7 +334,7 @@ if (reviewForm) {
                 body: JSON.stringify(reviewData)
             });
             if (response.ok) {
-                alert('⭐ Thank you! Review submitted for approval.');
+                showToast('⭐ Thank you! Review submitted for approval.');
                 reviewForm.reset();
                 if (starsContainer) { starsContainer.textContent = '☆☆☆☆☆'; starsContainer.classList.remove('active'); }
                 const ri = document.getElementById('reviewRating');
@@ -256,7 +342,7 @@ if (reviewForm) {
                 currentRating = 0;
             } else throw new Error('Server error');
         } catch (err) {
-            alert('⭐ Thank you for your feedback!');
+            showToast('⭐ Thank you for your feedback!');
             reviewForm.reset();
         }
         btn.textContent = originalText;
@@ -291,16 +377,186 @@ if (careersForm) {
                 body: JSON.stringify(candidateData)
             });
             if (response.ok) {
-                alert('✅ Application submitted! We will contact you within 48 hours.');
+                showToast('✅ Application submitted! We will contact you within 48 hours.');
+
                 careersForm.reset();
             } else throw new Error('Server error');
         } catch (err) {
-            alert('📋 Application received! We will contact you soon.');
+            showToast('📋 Application received! We will contact you soon.', 'info');
             careersForm.reset();
         }
         btn.textContent = originalText;
         btn.disabled = false;
     });
+}
+
+// ============================================
+// TOAST NOTIFICATIONS (alert replace)
+// ============================================
+function showToast(message, type = 'success') {
+    const existing = document.getElementById('toastNotif');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.id = 'toastNotif';
+    toast.style.cssText = `
+        position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
+        background:${type === 'success' ? '#16A34A' : type === 'error' ? '#DC2626' : '#1A3C6E'};
+        color:white;padding:12px 24px;border-radius:8px;font-size:0.9rem;
+        font-weight:600;z-index:99999;box-shadow:0 4px 16px rgba(0,0,0,0.2);
+        animation:slideUp 0.3s ease;max-width:90vw;text-align:center;`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
+}
+
+// ============================================
+// DYNAMIC SERVICES LOADER
+// ============================================
+async function loadServices() {
+    const grid = document.getElementById('servicesGrid');
+    if (!grid) return;
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/services`);
+        const data = await res.json();
+        grid.innerHTML = '';
+        data.services.forEach(s => {
+            const priceMap = {
+                graphic_design: 'From PKR 500',
+                web_development: 'From PKR 7,000',
+                erp_software: 'Custom Quote',
+                social_media: 'From PKR 5,000/mo',
+                ai_automation: 'Custom Quote',
+                custom_software: 'Custom Quote'
+            };
+            const card = document.createElement('div');
+            card.className = 'service-card';
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(30px)';
+            card.style.transition = 'all 0.6s ease';
+            card.innerHTML = `
+                <div class="service-icon">${s.icon}</div>
+                <h3>${s.service_name}</h3>
+                <p>${s.description}</p>
+                <div class="service-footer">
+                    <span class="service-status ${s.is_active === 'active' ? 'active' : 'soon'}">
+                        ${s.is_active === 'active' ? '✓ Available Now' : '🚀 Coming Soon'}
+                    </span>
+                    <span class="service-price">${priceMap[s.service_key] || 'Custom Quote'}</span>
+                </div>`;
+            grid.appendChild(card);
+            observer.observe(card);
+        });
+    } catch (err) {
+        console.log('Services load failed, keeping static');
+    }
+}
+
+// ============================================
+// DYNAMIC SERVICES ACCORDION WITH PRICING
+// ============================================
+async function loadServicesWithPricing() {
+  const accordion = document.getElementById('servicesAccordion');
+  if (!accordion) return;
+
+  try {
+    // Load both services and pricing together
+    const [svcRes, pkgRes] = await Promise.all([
+      fetch(`${API_BASE_URL}/api/services`),
+      fetch(`${API_BASE_URL}/api/pricing`)
+    ]);
+
+    const svcData = await svcRes.json();
+    const pkgData = await pkgRes.json();
+
+    const services = svcData.services || [];
+    const packages = pkgData.packages || [];
+
+    if (!services.length) {
+      accordion.innerHTML = '<p style="text-align:center;color:#6B7280">No services found.</p>';
+      return;
+    }
+
+    accordion.innerHTML = '';
+
+    services.forEach((svc, index) => {
+      // Get packages for this service
+      const svcPackages = packages.filter(p => p.service_key === svc.service_key);
+      const isActive = svc.is_active === 'active';
+
+      // Build packages HTML
+      let packagesHTML = '';
+      if (svcPackages.length > 0) {
+        packagesHTML = `<div class="packages-grid">
+          ${svcPackages.map(p => {
+            let features = [];
+            try { features = JSON.parse(p.features || '[]'); } catch(e) {}
+            return `
+              <div class="package-card ${p.is_popular ? 'popular' : ''}">
+                ${p.is_popular ? '<div class="package-popular-badge">🔥 Best Value</div>' : ''}
+                <h4>${p.package_name}</h4>
+                <div class="package-price">PKR ${(p.price || 0).toLocaleString()}</div>
+                <p class="package-desc">${p.description || ''}</p>
+                <ul class="package-features">
+                  ${features.map(f => `<li>${f}</li>`).join('')}
+                </ul>
+                <a href="https://wa.me/923103888922?text=I want ${p.package_name} (PKR ${p.price})"
+                   class="package-order-btn" target="_blank">
+                  Order on WhatsApp →
+                </a>
+              </div>`;
+          }).join('')}
+        </div>`;
+      } else {
+        packagesHTML = `<div class="no-packages-msg">
+          <p>📞 Contact us for custom pricing on this service.</p>
+          <a href="https://wa.me/923103888922" target="_blank" 
+             style="display:inline-block;margin-top:12px;padding:10px 24px;background:#F59E0B;color:#1A3C6E;border-radius:8px;font-weight:700;text-decoration:none;">
+            WhatsApp for Quote →
+          </a>
+        </div>`;
+      }
+
+      const item = document.createElement('div');
+      item.className = `service-accordion-item ${!isActive ? 'coming-soon' : ''}`;
+      // Auto-open first active service
+      if (index === 0) item.classList.add('open');
+
+      item.innerHTML = `
+        <div class="service-accordion-header">
+          <div class="service-accordion-left">
+            <div class="service-accordion-icon">${svc.icon}</div>
+            <div class="service-accordion-info">
+              <h3>${svc.service_name}</h3>
+              <p>${svc.description || ''}</p>
+            </div>
+          </div>
+          <div class="service-accordion-right">
+            <span class="service-status ${isActive ? 'active' : 'soon'}">
+              ${isActive ? '✓ Available Now' : '🚀 Coming Soon'}
+            </span>
+            <span class="service-accordion-arrow">▼</span>
+          </div>
+        </div>
+        <div class="service-accordion-body">
+          ${packagesHTML}
+        </div>`;
+
+      // Click to toggle
+      item.querySelector('.service-accordion-header').addEventListener('click', () => {
+        const isOpen = item.classList.contains('open');
+        // Close all
+        document.querySelectorAll('.service-accordion-item').forEach(i => i.classList.remove('open'));
+        // Open clicked (toggle)
+        if (!isOpen) item.classList.add('open');
+      });
+
+      accordion.appendChild(item);
+    });
+
+  } catch(err) {
+    console.log('Services accordion load failed:', err);
+    accordion.innerHTML = '<p style="text-align:center;color:#6B7280;padding:40px;">Unable to load services. Please refresh.</p>';
+  }
 }
 
 // ============================================
@@ -337,7 +593,44 @@ async function loadReviews() {
         if (reviewsGrid) reviewsGrid.innerHTML = '<p style="text-align:center;padding:20px;">No reviews yet. Be the first! ⭐</p>';
     }
 }
+async function loadServicesSection() {
+    const grid = document.getElementById('servicesGrid');
+    if (!grid) return;
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/services`);
+        const data = await res.json();
+        grid.innerHTML = '';
+        data.services.forEach(s => {
+            const priceMap = {
+                graphic_design: 'From PKR 500',
+                web_development: 'From PKR 7,000',
+                erp_software: 'Custom Quote',
+                social_media: 'From PKR 5,000/mo',
+                ai_automation: 'Custom Quote',
+                custom_software: 'Custom Quote'
+            };
+            const card = document.createElement('div');
+            card.className = 'service-card';
+            card.innerHTML = `
+                <div class="service-icon">${s.icon}</div>
+                <h3>${s.service_name}</h3>
+                <p>${s.description}</p>
+                <div class="service-footer">
+                    <span class="service-status ${s.is_active === 'active' ? 'active' : 'soon'}">
+                        ${s.is_active === 'active' ? '✓ Available Now' : '🚀 Coming Soon'}
+                    </span>
+                    <span class="service-price">${priceMap[s.service_key] || 'Custom Quote'}</span>
+                </div>`;
+            grid.appendChild(card);
+        });
+    } catch(err) {
+        console.log('Services section load failed');
+    }
+}
+
 loadReviews();
+loadServicesSection();
+loadServicesWithPricing();
 
 // Fix Facebook link
 document.querySelectorAll('.footer-social a').forEach(link => {
@@ -346,6 +639,7 @@ document.querySelectorAll('.footer-social a').forEach(link => {
         link.target = '_blank';
     }
 });
+
 
 // Scroll Animations
 const observer = new IntersectionObserver((entries) => {
