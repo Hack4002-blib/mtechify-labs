@@ -494,7 +494,7 @@ def toggle_service(data: dict, db: Session = Depends(get_db)):
     return {"success": True, "new_status": service.is_active, "service": service.service_name}
 
 @app.post("/api/admin/service/add")
-@app.post("/api/admin/service/add")
+
 def add_service(data: dict, db: Session = Depends(get_db)):
     if not verify_password(data.get("password", "")):
         raise HTTPException(status_code=401, detail="Wrong password")
@@ -522,7 +522,7 @@ def add_service(data: dict, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-        
+
 @app.delete("/api/admin/service/{service_key}")
 def delete_service(service_key: str, password: str, db: Session = Depends(get_db)):
     if not verify_password(password):
