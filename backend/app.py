@@ -494,26 +494,35 @@ def toggle_service(data: dict, db: Session = Depends(get_db)):
     return {"success": True, "new_status": service.is_active, "service": service.service_name}
 
 @app.post("/api/admin/service/add")
+@app.post("/api/admin/service/add")
 def add_service(data: dict, db: Session = Depends(get_db)):
     if not verify_password(data.get("password", "")):
         raise HTTPException(status_code=401, detail="Wrong password")
-    # Check duplicate
-    existing = db.query(ServiceConfig).filter(ServiceConfig.service_key == data.get("service_key")).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Service key already exists")
-    service = ServiceConfig(
-        service_key=data.get("service_key", "")[:50],
-        service_name=data.get("service_name", "")[:100],
-        description=data.get("description", "")[:500],
-        icon=data.get("icon", "🔧")[:10],
-        is_active=data.get("is_active", "coming_soon"),
-        is_permanent=0,
-        display_order=data.get("display_order", 99)
-    )
-    db.add(service)
-    db.commit()
-    return {"success": True, "message": "Service added", "id": service.id}
-
+    try:
+        existing = db.query(ServiceConfig).filter(
+            ServiceConfig.service_key == data.get("service_key")
+        ).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Service key already exists")
+        service = ServiceConfig(
+            service_key=str(data.get("service_key", ""))[:50],
+            service_name=str(data.get("service_name", ""))[:100],
+            description=str(data.get("description", ""))[:500],
+            icon=str(data.get("icon", "🔧"))[:10],
+            is_active=str(data.get("is_active", "coming_soon")),
+            is_permanent=0,
+            display_order=int(data.get("display_order", 99))
+        )
+        db.add(service)
+        db.commit()
+        db.refresh(service)
+        return {"success": True, "message": "Service added", "id": service.id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+        
 @app.delete("/api/admin/service/{service_key}")
 def delete_service(service_key: str, password: str, db: Session = Depends(get_db)):
     if not verify_password(password):
